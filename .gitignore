@@ -1,0 +1,32 @@
+# Raw genome data — PII, keep local only
+data/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Scratch (issue tracker drafts that aren't ready)
+.scratch/_drafts/
