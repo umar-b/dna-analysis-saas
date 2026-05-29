@@ -1,0 +1,23 @@
+{
+  "conditions": [
+    "FOXRED1-related disorder",
+    "Galloway-Mowat syndrome 1",
+    "Hereditary spastic paraplegia 48",
+    "Leigh syndrome",
+    "Macular dystrophy with or without extraocular features",
+    "Mitochondrial complex I deficiency, nuclear type 19",
+    "not provided"
+  ],
+  "drugs": [
+    "clopidogrel",
+    "warfarin"
+  ],
+  "genes": [
+    "AP5Z1",
+    "CYP2C19",
+    "CYP2C9",
+    "FOXRED1",
+    "VKORC1",
+    "ZNF592"
+  ]
+}

@@ -1,0 +1,41 @@
+[
+ {
+  "genesymbol": "CYP2C9",
+  "drugid": "RxNorm:11289",
+  "cpiclevel": "A",
+  "guidelineid": 100425,
+  "drug": {
+   "name": "warfarin"
+  },
+  "guideline": {
+   "url": "https://www.clinpgx.org/guideline/PA166251465",
+   "clinpgxid": "PA166251465"
+  }
+ },
+ {
+  "genesymbol": "VKORC1",
+  "drugid": "RxNorm:11289",
+  "cpiclevel": "A",
+  "guidelineid": 100425,
+  "drug": {
+   "name": "warfarin"
+  },
+  "guideline": {
+   "url": "https://www.clinpgx.org/guideline/PA166251465",
+   "clinpgxid": "PA166251465"
+  }
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "drugid": "RxNorm:32968",
+  "cpiclevel": "A",
+  "guidelineid": 100411,
+  "drug": {
+   "name": "clopidogrel"
+  },
+  "guideline": {
+   "url": "https://www.clinpgx.org/guideline/PA166251443",
+   "clinpgxid": "PA166251443"
+  }
+ }
+]

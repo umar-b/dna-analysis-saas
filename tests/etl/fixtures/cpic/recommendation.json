@@ -1,0 +1,34 @@
+[
+ {
+  "guidelineid": 100411,
+  "drugid": "RxNorm:32968",
+  "phenotypes": {
+   "CYP2C19": "Ultrarapid Metabolizer"
+  },
+  "drugrecommendation": "If considering clopidogrel, use at standard dose (75 mg/day)"
+ },
+ {
+  "guidelineid": 100411,
+  "drugid": "RxNorm:32968",
+  "phenotypes": {
+   "CYP2C19": "Rapid Metabolizer"
+  },
+  "drugrecommendation": "If considering clopidogrel, use at standard dose (75 mg/day)"
+ },
+ {
+  "guidelineid": 100411,
+  "drugid": "RxNorm:32968",
+  "phenotypes": {
+   "CYP2C19": "Normal Metabolizer"
+  },
+  "drugrecommendation": "If considering clopidogrel, use at standard dose (75 mg/day)"
+ },
+ {
+  "guidelineid": 100411,
+  "drugid": "RxNorm:32968",
+  "phenotypes": {
+   "CYP2C19": "Likely Intermediate Metabolizer"
+  },
+  "drugrecommendation": "Avoid standard dose clopidogrel (75 mg) if possible. Use prasugrel or ticagrelor at standard dose if no contraindication."
+ }
+]

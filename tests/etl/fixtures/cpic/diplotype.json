@@ -1,0 +1,47 @@
+[
+ {
+  "genesymbol": "CYP2C19",
+  "diplotype": "*10/*22",
+  "generesult": "Likely Poor Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "diplotype": "*10/*24",
+  "generesult": "Likely Poor Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "diplotype": "*10/*35",
+  "generesult": "Likely Poor Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "diplotype": "*10/*36",
+  "generesult": "Likely Poor Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "diplotype": "*10/*37",
+  "generesult": "Likely Poor Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "diplotype": "*16/*22",
+  "generesult": "Likely Poor Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C9",
+  "diplotype": "*1/*2",
+  "generesult": "Intermediate Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C9",
+  "diplotype": "*1/*11",
+  "generesult": "Intermediate Metabolizer"
+ },
+ {
+  "genesymbol": "CYP2C9",
+  "diplotype": "*1/*12",
+  "generesult": "Intermediate Metabolizer"
+ }
+]

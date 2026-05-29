@@ -1,0 +1,37 @@
+[
+ {
+  "genesymbol": "CYP2C9",
+  "dbsnpid": "rs1057910",
+  "name": "42614A>C"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "dbsnpid": "rs12248560",
+  "name": "-806C>T"
+ },
+ {
+  "genesymbol": "CYP2C9",
+  "dbsnpid": "rs1799853",
+  "name": "3608C>T"
+ },
+ {
+  "genesymbol": "SLCO1B1",
+  "dbsnpid": "rs4149056",
+  "name": "37041T>C"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "dbsnpid": "rs4244285",
+  "name": "19154G>A"
+ },
+ {
+  "genesymbol": "CYP2C19",
+  "dbsnpid": "rs4986893",
+  "name": "17948G>A"
+ },
+ {
+  "genesymbol": "VKORC1",
+  "dbsnpid": "rs9923231",
+  "name": "-1639G>A"
+ }
+]

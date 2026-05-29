@@ -117,6 +117,59 @@ class GoldEntry(BaseModel):
     clinically_actionable: bool
 
 
+class PgxPair(BaseModel):
+    """One ETL-flattened PGx table row (ADR-0005, ADR-0013).
+
+    Sourced from the CPIC API, keyed by (rsid, drug) — the per-variant agent
+    loop looks up by rsid and `Finding` granularity is per-(RSID, drug).
+    ``evidence_level`` is the CPIC level (A–D) carried verbatim; kept as a
+    plain string rather than the strict A–D literal so the full-catalogue ETL
+    does not crash on CPIC's occasional composite levels.
+    ``recommendation_text`` is a phenotype → recommendation map and
+    ``phenotype_table`` a diplotype → phenotype map (ADR-0013).
+    """
+
+    rsid: str
+    gene: str
+    drug: str
+    guideline_id: str  # CPIC guideline accession (clinpgxid, e.g. "PA166251443")
+    evidence_level: str  # CPIC level, e.g. "A"
+    recommendation_text: dict[str, str] = Field(default_factory=dict)
+    citation_url: str = ""
+    phenotype_table: dict[str, str] = Field(default_factory=dict)
+
+
+class ClinvarRecord(BaseModel):
+    """One ETL-flattened ClinVar table row (ADR-0005, ADR-0013).
+
+    From ClinVar ``variant_summary.txt``: ``RS# (dbSNP)`` → rsid (rows with
+    ``RS# = -1`` are dropped — no rsid), ``ClinicalSignificance``,
+    ``PhenotypeList`` → condition, ``ReviewStatus``.
+    """
+
+    rsid: str
+    clinical_significance: str
+    condition: str
+    review_status: str
+
+
+class NameAllowlist(BaseModel):
+    """Closed vocabulary derived from the ETL tables (ADR-0001, ADR-0005).
+
+    drugs ← ``pgx_pairs.drug``; genes ← ``pgx_pairs.gene`` ∪ ClinVar gene
+    symbols; conditions ← ``clinvar_records.condition``. The grader's (c)
+    hallucination check loads this; anything outside it is a hallucination.
+    """
+
+    drugs: list[str] = Field(default_factory=list)
+    genes: list[str] = Field(default_factory=list)
+    conditions: list[str] = Field(default_factory=list)
+
+    def as_set(self) -> set[str]:
+        """Flatten to the single token set the grader's (c) check consumes."""
+        return set(self.drugs) | set(self.genes) | set(self.conditions)
+
+
 class NotGraded(BaseModel):
     """Sentinel for metric (d) — medical defensibility (ADR-0001).
 

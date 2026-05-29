@@ -4,7 +4,10 @@ Tests exercise grade() through its public signature only. They describe what
 the grader scores, not how it tokenizes.
 """
 
+from importlib.resources import files
+
 from dna_analysis.grader import grade
+from dna_analysis.grader.loaders import parse_name_allowlist_json
 from dna_analysis.models import (
     ActionableFindingProse,
     Finding,
@@ -126,6 +129,17 @@ def test_c_flags_structured_drug_not_in_allowlist():
     result = grade(report, "rs4244285 CYP2C19 clopidogrel", gold, allowlist)
     assert "madeupazole" in result.hallucination.out_of_vocabulary
     assert result.hallucination.passed is False
+
+
+def test_c_loads_name_allowlist_json_and_rejects_hallucination():
+    # (c) now reads the ETL-produced name_allowlist.json (ADR-0013, issue #3)
+    text = (files("dna_analysis.grader") / "fixtures" / "name_allowlist.json").read_text()
+    allowlist = parse_name_allowlist_json(text)
+    assert "clopidogrel" in allowlist and "CYP2C19" in allowlist
+    md = "rs4244285 in CYP2C19 affects clopidogrel; we also recommend FAKEDRUG9."
+    result = grade(ReportObject(), md, [make_gold()], allowlist)
+    assert result.hallucination.passed is False
+    assert "FAKEDRUG9" in result.hallucination.out_of_vocabulary
 
 
 def test_d_is_not_graded_programmatically():
