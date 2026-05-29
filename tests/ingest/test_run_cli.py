@@ -30,7 +30,9 @@ def test_run_writes_filtered_parquet_and_diagnostics(tmp_path):
         "# header\nrs4244285\t10\t96541616\tGG\nrs9999999\t1\t100\tAA\n"
     )
     out = tmp_path / "out"
-    rc = main(["run", "--genome", str(genome), "--etl-dir", str(etl), "--out", str(out)])
+    rc = main(
+        ["run", "--genome", str(genome), "--etl-dir", str(etl), "--out", str(out), "--no-agent"]
+    )
     assert rc == 0
     assert (out / "filtered_genotype.parquet").exists()
     diag = json.loads((out / "filter_diagnostics.json").read_text())
@@ -42,6 +44,7 @@ def test_run_writes_filtered_parquet_and_diagnostics(tmp_path):
 def test_run_returns_nonzero_on_missing_genome(tmp_path):
     etl = _etl_dir(tmp_path)
     rc = main(
-        ["run", "--genome", str(tmp_path / "nope.txt"), "--etl-dir", str(etl), "--out", str(tmp_path / "o")]
+        ["run", "--genome", str(tmp_path / "nope.txt"), "--etl-dir", str(etl),
+         "--out", str(tmp_path / "o"), "--no-agent"]
     )
     assert rc != 0

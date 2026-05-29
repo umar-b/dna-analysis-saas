@@ -76,9 +76,16 @@ def _etl(out_dir: str, from_dir: str | None) -> int:
     return 0
 
 
-def _run(genome: str, etl_dir: str, out_dir: str) -> int:
-    """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), write
-    filtered_genotype.parquet + filter_diagnostics.json. No agent in this slice."""
+def _run(
+    genome: str,
+    etl_dir: str,
+    out_dir: str,
+    no_agent: bool = False,
+    max_variants: int | None = None,
+) -> int:
+    """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), then run
+    the per-variant agent loop (ADR-0002/0008) and write findings.json. Writes
+    filtered_genotype.parquet + filter_diagnostics.json regardless."""
     import json
     from pathlib import Path
 
@@ -104,8 +111,33 @@ def _run(genome: str, etl_dir: str, out_dir: str) -> int:
         f"filtered_genotype: {diagnostics['kept']} kept / {diagnostics['total']} total"
         f"  ({diagnostics['dropped']} dropped: {diagnostics['drop_reasons']})"
     )
-    print(f"-> {out / 'filtered_genotype.parquet'}")
-    print(f"-> {out / 'filter_diagnostics.json'}")
+
+    if no_agent:
+        print("(--no-agent: skipped per-variant calls)")
+        return 0
+
+    from dna_analysis.agent.llm import get_client_and_model
+    from dna_analysis.agent.per_variant import run_all
+    from dna_analysis.grader.loaders import parse_name_allowlist_json
+    from dna_analysis.models import NameAllowlist
+
+    allowlist = NameAllowlist(
+        **json.loads((Path(etl_dir) / "name_allowlist.json").read_text())
+    )
+    client, model, backend = get_client_and_model()
+    findings, info = run_all(
+        filtered, pgx_pairs, allowlist, client, model, max_variants=max_variants
+    )
+    (out / "findings.json").write_text(
+        json.dumps([f.model_dump() for f in findings], indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(
+        f"findings: {len(findings)} from {info['variants']} variants "
+        f"({info['calls']} API calls, {backend}/{model}, "
+        f"max cache_read={info['cached_tokens']} tokens)"
+    )
+    print(f"-> {out / 'findings.json'}")
     return 0
 
 
@@ -137,6 +169,12 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--genome", required=True, help="23andMe-format export path.")
     run.add_argument("--etl-dir", required=True, help="Directory of ETL tables.")
     run.add_argument("--out", required=True, help="Output directory.")
+    run.add_argument(
+        "--no-agent", action="store_true", help="Ingest + filter only; skip agent."
+    )
+    run.add_argument(
+        "--max-variants", type=int, default=None, help="Cap focal variants (dev cost)."
+    )
 
     args = parser.parse_args(argv)
     if args.command == "grade-stub":
@@ -144,7 +182,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "etl":
         return _etl(args.out, args.from_dir)
     if args.command == "run":
-        return _run(args.genome, args.etl_dir, args.out)
+        return _run(
+            args.genome, args.etl_dir, args.out, args.no_agent, args.max_variants
+        )
 
     parser.print_help()
     return 0
