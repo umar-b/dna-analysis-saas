@@ -76,6 +76,39 @@ def _etl(out_dir: str, from_dir: str | None) -> int:
     return 0
 
 
+def _run(genome: str, etl_dir: str, out_dir: str) -> int:
+    """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), write
+    filtered_genotype.parquet + filter_diagnostics.json. No agent in this slice."""
+    import json
+    from pathlib import Path
+
+    from dna_analysis.etl.tables import read_tables
+    from dna_analysis.ingest.genome import GenomeParseError, filter_genotype, parse
+
+    try:
+        pgx_pairs, clinvar_records = read_tables(etl_dir)
+        genome_df = parse(genome)
+    except (FileNotFoundError, GenomeParseError) as err:
+        print(f"error: {err}")
+        return 1
+
+    filtered, diagnostics = filter_genotype(genome_df, pgx_pairs, clinvar_records)
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    filtered.to_parquet(out / "filtered_genotype.parquet")
+    (out / "filter_diagnostics.json").write_text(
+        json.dumps(diagnostics, indent=2) + "\n", encoding="utf-8"
+    )
+    print(
+        f"filtered_genotype: {diagnostics['kept']} kept / {diagnostics['total']} total"
+        f"  ({diagnostics['dropped']} dropped: {diagnostics['drop_reasons']})"
+    )
+    print(f"-> {out / 'filtered_genotype.parquet'}")
+    print(f"-> {out / 'filter_diagnostics.json'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="dna-analysis",
@@ -97,12 +130,21 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Directory of pre-downloaded raw sources (skips network).",
     )
+    run = subparsers.add_parser(
+        "run",
+        help="Ingest a genome + filter to clinically-interesting RSIDs (ADR-0004).",
+    )
+    run.add_argument("--genome", required=True, help="23andMe-format export path.")
+    run.add_argument("--etl-dir", required=True, help="Directory of ETL tables.")
+    run.add_argument("--out", required=True, help="Output directory.")
 
     args = parser.parse_args(argv)
     if args.command == "grade-stub":
         return _grade_stub()
     if args.command == "etl":
         return _etl(args.out, args.from_dir)
+    if args.command == "run":
+        return _run(args.genome, args.etl_dir, args.out)
 
     parser.print_help()
     return 0
