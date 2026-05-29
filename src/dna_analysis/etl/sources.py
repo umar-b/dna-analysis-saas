@@ -27,8 +27,19 @@ CPIC_API = "https://api.cpicpgx.org/v1"
 CLINVAR_URL = (
     "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz"
 )
-# V1 PGx gene scope (ADR-0013). Widen as the gold set grows.
-PGX_GENES = ["CYP2C19", "CYP2C9", "VKORC1", "SLCO1B1"]
+# V1 PGx gene scope (ADR-0013) — the genes the gold set (#4) draws from.
+PGX_GENES = [
+    "CYP2C19",
+    "CYP2C9",
+    "CYP3A5",
+    "CYP4F2",
+    "DPYD",
+    "NUDT15",
+    "SLCO1B1",
+    "TPMT",
+    "UGT1A1",
+    "VKORC1",
+]
 
 
 @dataclass

@@ -170,6 +170,33 @@ class NameAllowlist(BaseModel):
         return set(self.drugs) | set(self.genes) | set(self.conditions)
 
 
+class GoldValidation(BaseModel):
+    """Mechanical pre-trust check on the gold set (issue #4, ADR-0001)."""
+
+    total: int
+    missing_from_genome: list[str] = Field(default_factory=list)  # rsids not in export
+    out_of_allowlist: list[str] = Field(default_factory=list)  # drug/gene not allowed
+    actionable_count: int = 0
+    unremarkable_count: int = 0
+
+    @property
+    def meets_minimum(self) -> bool:
+        return self.total >= 25
+
+    @property
+    def has_coverage_mix(self) -> bool:
+        return self.actionable_count >= 1 and self.unremarkable_count >= 2
+
+    @property
+    def ok(self) -> bool:
+        return (
+            not self.missing_from_genome
+            and not self.out_of_allowlist
+            and self.meets_minimum
+            and self.has_coverage_mix
+        )
+
+
 class NotGraded(BaseModel):
     """Sentinel for metric (d) — medical defensibility (ADR-0001).
 
