@@ -1,0 +1,9 @@
+# Canned name allowlist for the grade-stub smoke test (one entity per line).
+# Real allowlist falls out of the ETL step (issue #3). Closed vocabulary the
+# report is permitted to use; anything outside is a hallucination (ADR-0001).
+CYP2C19
+VKORC1
+SLCO1B1
+clopidogrel
+warfarin
+simvastatin

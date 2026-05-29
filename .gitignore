@@ -1,6 +1,13 @@
 # Raw genome data — PII, keep local only
 data/
 
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+*.pyc
+
 # Node
 node_modules/
 dist/

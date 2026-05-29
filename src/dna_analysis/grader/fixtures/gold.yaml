@@ -1,0 +1,21 @@
+# Canned gold set for the grade-stub smoke test. Not the real gold.yaml
+# (issue #4 hand-curates that). Three (RSID, drug) entries chosen to exercise
+# pass and fail on (a) and (b). Mirrors GoldEntry (ADR-0003).
+- rsid: rs4244285
+  gene: CYP2C19
+  drug: clopidogrel
+  guideline_id: "CPIC:CYP2C19:clopidogrel"
+  evidence_level: A
+  clinically_actionable: true
+- rsid: rs9923231
+  gene: VKORC1
+  drug: warfarin
+  guideline_id: "CPIC:VKORC1:warfarin"
+  evidence_level: A
+  clinically_actionable: true
+- rsid: rs4149056
+  gene: SLCO1B1
+  drug: simvastatin
+  guideline_id: "CPIC:SLCO1B1:simvastatin"
+  evidence_level: A
+  clinically_actionable: true

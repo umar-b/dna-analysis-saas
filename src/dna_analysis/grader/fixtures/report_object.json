@@ -1,0 +1,17 @@
+{
+  "actionable_findings": [
+    {
+      "gene": "CYP2C19",
+      "diplotype_label": "CYP2C19 *1/*2",
+      "recommendation_paragraph": "One loss-of-function allele reduces clopidogrel activation; consider an alternative antiplatelet.",
+      "citation_id": "CPIC:CYP2C19:clopidogrel",
+      "related_finding_rsids": ["rs4244285"]
+    }
+  ],
+  "lifestyle_observations": [],
+  "lab_observations": [],
+  "unremarkable_screen": [],
+  "caveats": [
+    "Canned fixture for the grade-stub smoke test; not a real report."
+  ]
+}
