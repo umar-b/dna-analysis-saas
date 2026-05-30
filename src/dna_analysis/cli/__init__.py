@@ -80,6 +80,7 @@ _D_CHECKLIST = (
     "Manual (d) review checklist (ADR-0001; PGx prose only, ADR-0011):\n"
     "  - Are the recommendation paragraphs medically defensible?\n"
     "  - Do drug/gene/condition names match what PharmGKB would say?\n"
+    "  - Do all lab values cited in the report match the source PDFs exactly?\n"
     "  - (Lifestyle/lab sections are stack-validation only — not medically read.)"
 )
 
@@ -92,6 +93,7 @@ def _run(
     max_variants: int | None = None,
     gold: str | None = None,
     whoop: str | None = None,
+    labs: list[str] | None = None,
 ) -> int:
     """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), then run
     the per-variant agent loop (ADR-0002/0008) and write findings.json. Writes
@@ -165,7 +167,23 @@ def _run(
         whoop_summary = parse_whoop(whoop)
         print(f"whoop: {whoop_summary.n_cycles} cycles in 90d window to {whoop_summary.anchor_date}")
 
-    report_object = synth_call(findings, whoop_summary, None, allowlist, client, model)
+    # Lab vision extraction (ADR-0007) — persist BEFORE synthesis so the manual
+    # (d) read can spot-check vision against the source PDFs.
+    lab_records = None
+    if labs:
+        from dna_analysis.agent.llm import get_vision_model
+        from dna_analysis.ingest.labs import extract as extract_labs
+
+        lab_records = extract_labs(labs, client, get_vision_model())
+        (out / "labs_extracted.json").write_text(
+            json.dumps([r.model_dump() for r in lab_records], indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"labs: {len(lab_records)} records -> {out / 'labs_extracted.json'}")
+
+    report_object = synth_call(
+        findings, whoop_summary, lab_records, allowlist, client, model
+    )
     (out / "report_object.json").write_text(
         report_object.model_dump_json(indent=2) + "\n", encoding="utf-8"
     )
@@ -245,6 +263,9 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument(
         "--whoop", default=None, help="Whoop CSV (or export dir) for lifestyle obs."
     )
+    run.add_argument(
+        "--labs", nargs="+", default=None, help="Lab PDF path(s) for lab observations."
+    )
 
     args = parser.parse_args(argv)
     if args.command == "grade-stub":
@@ -254,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         return _run(
             args.genome, args.etl_dir, args.out, args.no_agent,
-            args.max_variants, args.gold, args.whoop,
+            args.max_variants, args.gold, args.whoop, args.labs,
         )
 
     parser.print_help()

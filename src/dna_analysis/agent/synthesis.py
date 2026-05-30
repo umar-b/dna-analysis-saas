@@ -38,7 +38,9 @@ def _system_prompt(allowlist: NameAllowlist) -> str:
         "reference its metrics (HRV, recovery score, day strain, resting heart rate, "
         "sleep duration/performance). If none is provided, return empty "
         "lifestyle_observations and note the gap in caveats.\n"
-        "- If no lab data is provided, return empty lab_observations and note the gap.\n\n"
+        "- If lab records are provided, write lab_observations referencing them and "
+        "quote every lab value EXACTLY as given — no rounding or paraphrasing "
+        "(ADR-0007). If none, return empty lab_observations and note the gap.\n\n"
         f"NAME ALLOWLIST\ndrugs: {', '.join(allowlist.drugs)}\n"
         f"genes: {', '.join(allowlist.genes)}\nconditions: {', '.join(allowlist.conditions)}"
     )
@@ -65,11 +67,18 @@ def call(
             else whoop_summary
         )
 
+    if lab_records:
+        labs_repr = json.dumps(
+            [r.model_dump() if hasattr(r, "model_dump") else r for r in lab_records]
+        )
+    else:
+        labs_repr = "none provided"
+
     user = (
         "Actionable findings:\n"
         + json.dumps([f.model_dump() for f in actionable], indent=1)
         + f"\n\nWhoop 90-day summary: {whoop_repr}"
-        + f"\nLab records: {lab_records or 'none provided'}\n\n"
+        + f"\nLab records: {labs_repr}\n\n"
         "Synthesize the report object."
     )
     messages = [

@@ -11,6 +11,12 @@ from pathlib import Path
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEV_MODEL = "anthropic/claude-3.5-haiku"
+# claude-3.5-haiku has no vision; labs (#10) use a cheap vision-capable model.
+DEV_VISION_MODEL = "openai/gpt-4o-mini"
+
+
+def get_vision_model() -> str:
+    return os.environ.get("LLM_VISION_MODEL", DEV_VISION_MODEL)
 
 
 def load_dotenv(path: str = ".env") -> None:
