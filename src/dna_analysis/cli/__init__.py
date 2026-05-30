@@ -158,7 +158,7 @@ def _run(
 
     # Synthesis -> ReportObject -> report.md (ADR-0009, ADR-0011)
     from dna_analysis.agent.synthesis import call as synth_call
-    from dna_analysis.report import render
+    from dna_analysis.report import render, render_pdf
 
     whoop_summary = None
     if whoop:
@@ -189,8 +189,9 @@ def _run(
     )
     report_md = render(report_object)
     (out / "report.md").write_text(report_md, encoding="utf-8")
+    (out / "report.pdf").write_bytes(render_pdf(report_object))
     print(
-        f"report.md: {len(report_object.actionable_findings)} actionable, "
+        f"report.md + report.pdf: {len(report_object.actionable_findings)} actionable, "
         f"{len(report_object.unremarkable_screen)} unremarkable"
     )
 
@@ -220,7 +221,7 @@ def _run(
         )
 
     print("\n" + _D_CHECKLIST)
-    print(f"\n-> {out}/  (report.md, report_object.json, findings.json"
+    print(f"\n-> {out}/  (report.md, report.pdf, report_object.json, findings.json"
           + (", grade_result.json)" if gold else ")"))
     return 0
 
