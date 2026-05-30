@@ -12,8 +12,10 @@ import json
 import pandas as pd
 
 from dna_analysis.agent.llm import cached_tokens
-from dna_analysis.models import Finding, NameAllowlist, PgxPair
+from dna_analysis.models import ClinvarRecord, Finding, NameAllowlist, PgxPair
+from dna_analysis.tools.clinvar import lookup_clinvar
 from dna_analysis.tools.pharmgkb import lookup_pharmgkb_pgx
+from dna_analysis.tools.pubmed import search_pubmed
 
 _FINDING_PROPS = {
     "rsid": {"type": "string"},
@@ -21,7 +23,10 @@ _FINDING_PROPS = {
     "genotype": {"type": "string"},
     "drug": {"type": "string", "description": "lowercase CPIC drug name, from the allowlist"},
     "guideline_id": {"type": "string", "description": "copied verbatim from tool output"},
-    "evidence_level": {"type": "string", "enum": ["A", "B", "C", "D"]},
+    "evidence_level": {
+        "type": "string",
+        "description": "CPIC level A-D for PGx; ClinVar review status for ClinVar findings",
+    },
     "recommendation_gist": {"type": "string"},
     "citation_url": {"type": "string"},
     "clinically_actionable": {"type": "boolean"},
@@ -43,6 +48,33 @@ _TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "lookup_clinvar",
+            "description": "Look up a ClinVar record by rsid (clinical_significance, condition).",
+            "parameters": {
+                "type": "object",
+                "properties": {"rsid": {"type": "string"}},
+                "required": ["rsid"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_pubmed",
+            "description": "Free-text PubMed search. LAST RESORT — use sparingly.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "max_results": {"type": "integer"},
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "submit_findings",
             "description": "Submit one Finding per (rsid, drug) for the focal variant.",
             "parameters": {
@@ -53,7 +85,7 @@ _TOOLS = [
                         "items": {
                             "type": "object",
                             "properties": _FINDING_PROPS,
-                            "required": list(_FINDING_PROPS),
+                            "required": ["gene", "drug", "citation_url"],
                         },
                     }
                 },
@@ -112,6 +144,9 @@ def build_system_prompt(pgx_pairs: list[PgxPair], allowlist: NameAllowlist) -> s
         "for ONE focal variant. Rules:\n"
         "- Call lookup_pharmgkb_pgx with the focal rsid to retrieve the PGx records, "
         "then call submit_findings with ONE finding per (rsid, drug) pair returned.\n"
+        "- If lookup_pharmgkb_pgx returns nothing, call lookup_clinvar(rsid); if it has "
+        "a record, submit one finding citing the ClinVar source (its citation_url).\n"
+        "- search_pubmed is a LAST RESORT for free-text evidence — use sparingly.\n"
         "- Copy guideline_id and citation_url VERBATIM from the tool output; never invent them.\n"
         "- Use ONLY drug and gene names that appear in the name allowlist below. If you "
         "would need a name outside it, abstain rather than introduce a new proper noun.\n"
@@ -134,6 +169,7 @@ def run_all(
     allowlist: NameAllowlist,
     client,
     model: str,
+    clinvar_records: list[ClinvarRecord] | None = None,
     max_variants: int | None = None,
 ) -> tuple[list[Finding], dict]:
     """Iterate filtered focal rsids (grouped by gene) and collect all Findings."""
@@ -153,7 +189,13 @@ def run_all(
     for rsid, genotype in rows:
         focal = {"rsid": rsid, "gene": gene_of[rsid], "genotype": genotype}
         got, call_info = call(
-            focal, context.get(rsid, []), pgx_pairs, allowlist, client, model
+            focal,
+            context.get(rsid, []),
+            pgx_pairs,
+            allowlist,
+            client,
+            model,
+            clinvar_records=clinvar_records,
         )
         findings.extend(got)
         info["cached_tokens"] = max(info["cached_tokens"], call_info["cached_tokens"])
@@ -168,6 +210,7 @@ def call(
     allowlist: NameAllowlist,
     client,
     model: str,
+    clinvar_records: list[ClinvarRecord] | None = None,
     max_turns: int = 5,
 ) -> tuple[list[Finding], dict]:
     """One per-variant agent call (ADR-0002, ADR-0008). Returns (findings, info).
@@ -230,6 +273,21 @@ def call(
                 messages.append(
                     {"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result)}
                 )
+            elif tc.function.name == "lookup_clinvar":
+                result = lookup_clinvar(args.get("rsid", ""), clinvar_records or [])
+                messages.append(
+                    {"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result)}
+                )
+            elif tc.function.name == "search_pubmed":
+                try:
+                    result = search_pubmed(
+                        args.get("query", ""), int(args.get("max_results", 3))
+                    )
+                except Exception as err:  # network/last-resort tool must not crash the loop
+                    result = [{"error": str(err)}]
+                messages.append(
+                    {"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result)}
+                )
             elif tc.function.name == "submit_findings":
                 findings = []
                 for f in args.get("findings", []):
@@ -238,16 +296,16 @@ def call(
                             f = json.loads(f)
                         except json.JSONDecodeError:
                             continue
-                    if not isinstance(f, dict) or "gene" not in f or "drug" not in f:
+                    if not isinstance(f, dict):
                         continue
                     findings.append(
                         Finding(
                             rsid=f.get("rsid", focal["rsid"]),
-                            gene=f["gene"],
+                            gene=f.get("gene", ""),
                             genotype=f.get("genotype", focal["genotype"]),
-                            drug=f["drug"],
-                            guideline_id=f["guideline_id"],
-                            evidence_level=f["evidence_level"],
+                            drug=f.get("drug", ""),
+                            guideline_id=f.get("guideline_id", ""),
+                            evidence_level=f.get("evidence_level", ""),
                             recommendation_gist=f.get("recommendation_gist", ""),
                             citation_url=f.get("citation_url", ""),
                             clinically_actionable=bool(f.get("clinically_actionable", False)),

@@ -1,6 +1,10 @@
 """Pure tests for same-gene grouping (ADR-0008). No LLM."""
 
-from dna_analysis.agent.per_variant import build_same_gene_context, rsid_to_gene
+from dna_analysis.agent.per_variant import (
+    _TOOLS,
+    build_same_gene_context,
+    rsid_to_gene,
+)
 from dna_analysis.ingest.genome import parse_text
 from dna_analysis.models import PgxPair
 
@@ -31,3 +35,9 @@ def test_rsid_to_gene_from_pgx_pairs():
                 guideline_id="PA1", evidence_level="A"),
     ]
     assert rsid_to_gene(pairs) == {"rs4244285": "CYP2C19"}
+
+
+def test_all_three_tools_plus_submit_registered():
+    names = {t["function"]["name"] for t in _TOOLS}
+    assert {"lookup_pharmgkb_pgx", "lookup_clinvar", "search_pubmed"} <= names
+    assert "submit_findings" in names

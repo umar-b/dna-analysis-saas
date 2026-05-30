@@ -126,7 +126,13 @@ def _run(
     )
     client, model, backend = get_client_and_model()
     findings, info = run_all(
-        filtered, pgx_pairs, allowlist, client, model, max_variants=max_variants
+        filtered,
+        pgx_pairs,
+        allowlist,
+        client,
+        model,
+        clinvar_records=clinvar_records,
+        max_variants=max_variants,
     )
     (out / "findings.json").write_text(
         json.dumps([f.model_dump() for f in findings], indent=2) + "\n",

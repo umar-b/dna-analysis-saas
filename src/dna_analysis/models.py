@@ -30,14 +30,17 @@ class Finding(BaseModel):
     """
 
     rsid: str
-    gene: str
-    genotype: str
-    drug: str
-    guideline_id: str
-    evidence_level: EvidenceLevel
-    recommendation_gist: str
-    citation_url: str
-    clinically_actionable: bool
+    gene: str = ""
+    genotype: str = ""
+    drug: str = ""
+    guideline_id: str = ""
+    # CPIC level (A-D) for PGx findings; for ClinVar-sourced findings (issue #7,
+    # no CPIC pair) this carries the ClinVar review status instead — hence str,
+    # not the strict A-D literal. GoldEntry keeps the strict CPIC literal.
+    evidence_level: str = ""
+    recommendation_gist: str = ""
+    citation_url: str = ""
+    clinically_actionable: bool = False
     same_gene_context: list[tuple[str, str]] = Field(default_factory=list)
 
 

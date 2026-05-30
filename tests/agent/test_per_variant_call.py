@@ -9,7 +9,7 @@ import pytest
 
 from dna_analysis.agent.llm import get_client_and_model, load_dotenv
 from dna_analysis.agent.per_variant import call
-from dna_analysis.models import NameAllowlist, PgxPair
+from dna_analysis.models import ClinvarRecord, NameAllowlist, PgxPair
 
 load_dotenv()
 pytestmark = pytest.mark.skipif(
@@ -48,3 +48,31 @@ def test_per_variant_call_returns_findings_with_allowlist_strings():
         assert f.drug in allowlist.drugs
         assert f.same_gene_context == [("rs12248560", "CC")]  # harness-stamped
     assert info["calls"] >= 2  # at least a lookup turn + a submit turn
+
+
+def test_clinvar_only_variant_produces_finding_citing_clinvar():
+    # rsid absent from PharmGKB CPIC, present in ClinVar (issue #7 acceptance)
+    clinvar = [
+        ClinvarRecord(
+            rsid="rs397704705",
+            clinical_significance="Pathogenic/Likely pathogenic",
+            condition="Hereditary spastic paraplegia 48",
+            review_status="criteria provided, multiple submitters, no conflicts",
+        )
+    ]
+    allowlist = NameAllowlist(
+        drugs=[], genes=["AP5Z1"], conditions=["Hereditary spastic paraplegia 48"]
+    )
+    client, model, _ = get_client_and_model()
+    findings, _info = call(
+        focal={"rsid": "rs397704705", "gene": "", "genotype": "AG"},
+        same_gene_context=[],
+        pgx_pairs=[],  # not in PharmGKB CPIC
+        allowlist=allowlist,
+        client=client,
+        model=model,
+        clinvar_records=clinvar,
+    )
+    assert len(findings) >= 1
+    assert any("rs397704705" in (f.citation_url or "") for f in findings)
+
