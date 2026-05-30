@@ -68,7 +68,10 @@ def extract(paths: list[str], client, vision_model: str) -> list[LabRecord]:
             model=vision_model,
             messages=[{"role": "user", "content": content}],
             response_format={"type": "json_object"},
-            max_tokens=2000,
+            # A multi-page panel emits dozens of records; 2000 truncated mid-JSON
+            # (finish_reason=length) -> parse failure -> 0 records. Size for a full
+            # 6-page report.
+            max_tokens=8000,
         )
         try:
             data = json.loads(resp.choices[0].message.content or "{}")

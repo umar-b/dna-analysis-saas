@@ -99,7 +99,7 @@ def call(
             model=model,
             messages=messages,
             response_format={"type": "json_object"},
-            max_tokens=4000,
+            max_tokens=8000,
         )
         content = resp.choices[0].message.content or "{}"
         try:

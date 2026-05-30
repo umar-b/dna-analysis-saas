@@ -149,6 +149,19 @@ def test_c_ignores_structural_scaffolding_tokens():
     assert result.hallucination.passed is True
 
 
+def test_c_ignores_standard_clinical_abbreviations():
+    # Real lab/PGx prose carries standard clinical acronyms (TDM, DPD, INR, MCV,
+    # MCH, CRP, CCP, HLA, B27) that share the gene-symbol lexical shape but are
+    # vocabulary, not invented entities — they must not read as hallucinations.
+    md = (
+        "Titrate tacrolimus using therapeutic drug monitoring (TDM); INR-guided "
+        "warfarin dosing. DPD activity reduced. Labs: MCV 76 fl, MCH 26 pg, "
+        "CRP <0.06, CCP AK <8.0, HLA-B27 negativ."
+    )
+    result = grade(ReportObject(), md, [make_gold()], {"CYP2C19", "clopidogrel"})
+    assert result.hallucination.passed is True
+
+
 def test_d_is_not_graded_programmatically():
     result = grade(ReportObject(), "", [make_gold()], set())
     assert isinstance(result.medical_defensibility, NotGraded)

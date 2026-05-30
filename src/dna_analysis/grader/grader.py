@@ -30,7 +30,15 @@ _GENE_SYMBOL = re.compile(r"\b[A-Z][A-Z0-9]{2,}\b")
 # report scaffolding or vocabulary, not entity names — excluded from the (c)
 # check so the report template and disclaimer don't read as hallucinations.
 _STRUCTURAL_TOKENS = {
+    # report scaffolding / PGx vocabulary
     "DNA", "RSID", "PGP", "CPIC", "PGX", "PMID", "URL", "HRV", "RHR", "ID", "NSAID",
+    "TDM", "DPD", "INR",
+    # standard lab / clinical-chemistry abbreviations that appear in real lab
+    # prose (the lab section is stack-validation only in V1 — ADR-0011 — so its
+    # vocabulary must not register as hallucinated entities). Coarse by design.
+    "MCV", "MCH", "MCHC", "RDW", "CRP", "CCP", "HLA", "B27", "ESR", "BUN",
+    "LDL", "HDL", "ALT", "AST", "GGT", "TSH", "ANA", "RBC", "WBC", "CK",
+    "IGG", "IGA", "IGM", "SS", "RNP", "RO", "LA",
 }
 
 
