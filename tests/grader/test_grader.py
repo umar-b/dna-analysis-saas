@@ -142,6 +142,13 @@ def test_c_loads_name_allowlist_json_and_rejects_hallucination():
     assert "FAKEDRUG9" in result.hallucination.out_of_vocabulary
 
 
+def test_c_ignores_structural_scaffolding_tokens():
+    # template/disclaimer acronyms (DNA, RSID, PGP) must not read as hallucinations
+    md = "# DNA Analysis Report\n| RSID | Gene |\nrs4244285 CYP2C19 clopidogrel — PGP demo."
+    result = grade(ReportObject(), md, [make_gold()], {"CYP2C19", "clopidogrel"})
+    assert result.hallucination.passed is True
+
+
 def test_d_is_not_graded_programmatically():
     result = grade(ReportObject(), "", [make_gold()], set())
     assert isinstance(result.medical_defensibility, NotGraded)

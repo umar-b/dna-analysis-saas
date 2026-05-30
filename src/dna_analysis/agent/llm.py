@@ -45,6 +45,37 @@ def get_client_and_model():
     raise ValueError(f"unknown LLM_BACKEND: {backend}")
 
 
+def chat_with_retry(client, *, attempts: int = 4, **kwargs):
+    """client.chat.completions.create with backoff on transient errors.
+
+    A long run (hundreds of per-variant calls) will hit the occasional network
+    blip or rate limit; one transient failure should not kill the whole run.
+    """
+    import time
+
+    try:
+        from openai import (
+            APIConnectionError,
+            APITimeoutError,
+            InternalServerError,
+            RateLimitError,
+        )
+
+        transient = (APIConnectionError, APITimeoutError, RateLimitError, InternalServerError)
+    except Exception:  # pragma: no cover - openai always present
+        transient = (Exception,)
+
+    last = None
+    for i in range(attempts):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except transient as err:
+            last = err
+            if i < attempts - 1:
+                time.sleep(2 * (i + 1))
+    raise last
+
+
 def cached_tokens(usage) -> int:
     """Cache-read tokens, normalized across backends (ADR-0014)."""
     details = getattr(usage, "prompt_tokens_details", None)

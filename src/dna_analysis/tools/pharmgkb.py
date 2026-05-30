@@ -10,15 +10,18 @@ from __future__ import annotations
 from dna_analysis.models import PgxPair
 
 
+# Compact fields only. recommendation_text and phenotype_table are large
+# nested dicts (phenotype/diplotype maps) and are duplicated across every record
+# for a gene — returning them blows past the context window. They are omitted
+# from the tool surface; the model writes recommendation_gist itself and infers
+# the phenotype from the focal genotype + same-gene context.
 _FIELDS = (
     "rsid",
     "gene",
     "drug",
     "guideline_id",
     "evidence_level",
-    "recommendation_text",
     "citation_url",
-    "phenotype_table",
 )
 
 

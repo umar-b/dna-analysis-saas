@@ -26,13 +26,22 @@ from dna_analysis.models import (
 # slices refine closed-vocabulary enforcement.
 _GENE_SYMBOL = re.compile(r"\b[A-Z][A-Z0-9]{2,}\b")
 
+# Structural/domain acronyms that share the gene-symbol lexical shape but are
+# report scaffolding or vocabulary, not entity names — excluded from the (c)
+# check so the report template and disclaimer don't read as hallucinations.
+_STRUCTURAL_TOKENS = {
+    "DNA", "RSID", "PGP", "CPIC", "PGX", "PMID", "URL", "HRV", "RHR", "ID", "NSAID",
+}
+
 
 def _out_of_vocabulary(
     report_object: ReportObject,
     rendered_report_md: str,
     name_allowlist: set[str],
 ) -> list[str]:
-    allow_lower = {name.lower() for name in name_allowlist}
+    allow_lower = {name.lower() for name in name_allowlist} | {
+        t.lower() for t in _STRUCTURAL_TOKENS
+    }
     candidates: list[str] = []
 
     # Gene-symbol-shaped tokens in the rendered markdown.

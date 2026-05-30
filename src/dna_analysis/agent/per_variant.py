@@ -11,7 +11,7 @@ import json
 
 import pandas as pd
 
-from dna_analysis.agent.llm import cached_tokens
+from dna_analysis.agent.llm import cached_tokens, chat_with_retry
 from dna_analysis.models import ClinvarRecord, Finding, NameAllowlist, PgxPair
 from dna_analysis.tools.clinvar import lookup_clinvar
 from dna_analysis.tools.pharmgkb import lookup_pharmgkb_pgx
@@ -186,17 +186,23 @@ def run_all(
 
     findings: list[Finding] = []
     info = {"cached_tokens": 0, "calls": 0, "variants": len(rows)}
+    info["skipped"] = 0
     for rsid, genotype in rows:
         focal = {"rsid": rsid, "gene": gene_of[rsid], "genotype": genotype}
-        got, call_info = call(
-            focal,
-            context.get(rsid, []),
-            pgx_pairs,
-            allowlist,
-            client,
-            model,
-            clinvar_records=clinvar_records,
-        )
+        try:
+            got, call_info = call(
+                focal,
+                context.get(rsid, []),
+                pgx_pairs,
+                allowlist,
+                client,
+                model,
+                clinvar_records=clinvar_records,
+            )
+        except Exception as err:  # one variant failing must not lose the run
+            info["skipped"] += 1
+            print(f"  ! {rsid} skipped: {type(err).__name__}: {str(err)[:120]}")
+            continue
         findings.extend(got)
         info["cached_tokens"] = max(info["cached_tokens"], call_info["cached_tokens"])
         info["calls"] += call_info["calls"]
@@ -241,8 +247,8 @@ def call(
 
     info = {"cached_tokens": 0, "calls": 0}
     for _ in range(max_turns):
-        resp = client.chat.completions.create(
-            model=model, messages=messages, tools=_TOOLS, max_tokens=2000
+        resp = chat_with_retry(
+            client, model=model, messages=messages, tools=_TOOLS, max_tokens=2000
         )
         info["calls"] += 1
         info["cached_tokens"] = max(info["cached_tokens"], cached_tokens(resp.usage))

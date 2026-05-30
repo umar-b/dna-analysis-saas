@@ -1,0 +1,49 @@
+# DNA Analysis Report
+
+## Actionable findings
+
+{% for f in report.actionable_findings %}
+### {{ f.gene }} — {{ f.diplotype_label }}
+
+{{ f.recommendation_paragraph }}
+
+_Citation: {{ f.citation_id }}_
+{% else %}
+_No actionable pharmacogenomic findings._
+{% endfor %}
+
+## Lifestyle observations
+
+{% for o in report.lifestyle_observations %}
+{{ o.observation_paragraph }}
+{% else %}
+_None._
+{% endfor %}
+
+## Lab observations
+
+{% for o in report.lab_observations %}
+{{ o.observation_paragraph }}
+{% else %}
+_None._
+{% endfor %}
+
+## Caveats
+
+{% for c in report.caveats %}
+- {{ c }}
+{% else %}
+_None._
+{% endfor %}
+
+## Screened, unremarkable
+
+| RSID | Gene | Drug | Note |
+| --- | --- | --- | --- |
+{% for f in report.unremarkable_screen %}
+| {{ f.rsid }} | {{ f.gene }} | {{ f.drug }} | {{ f.recommendation_gist }} |
+{% endfor %}
+
+---
+
+_{{ disclaimer }}_

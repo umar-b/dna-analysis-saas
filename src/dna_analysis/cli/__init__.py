@@ -76,12 +76,21 @@ def _etl(out_dir: str, from_dir: str | None) -> int:
     return 0
 
 
+_D_CHECKLIST = (
+    "Manual (d) review checklist (ADR-0001; PGx prose only, ADR-0011):\n"
+    "  - Are the recommendation paragraphs medically defensible?\n"
+    "  - Do drug/gene/condition names match what PharmGKB would say?\n"
+    "  - (Lifestyle/lab sections are stack-validation only — not medically read.)"
+)
+
+
 def _run(
     genome: str,
     etl_dir: str,
     out_dir: str,
     no_agent: bool = False,
     max_variants: int | None = None,
+    gold: str | None = None,
 ) -> int:
     """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), then run
     the per-variant agent loop (ADR-0002/0008) and write findings.json. Writes
@@ -143,7 +152,50 @@ def _run(
         f"({info['calls']} API calls, {backend}/{model}, "
         f"max cache_read={info['cached_tokens']} tokens)"
     )
-    print(f"-> {out / 'findings.json'}")
+
+    # Synthesis -> ReportObject -> report.md (ADR-0009, ADR-0011)
+    from dna_analysis.agent.synthesis import call as synth_call
+    from dna_analysis.report import render
+
+    report_object = synth_call(findings, None, None, allowlist, client, model)
+    (out / "report_object.json").write_text(
+        report_object.model_dump_json(indent=2) + "\n", encoding="utf-8"
+    )
+    report_md = render(report_object)
+    (out / "report.md").write_text(report_md, encoding="utf-8")
+    print(
+        f"report.md: {len(report_object.actionable_findings)} actionable, "
+        f"{len(report_object.unremarkable_screen)} unremarkable"
+    )
+
+    # Grade (a)(b)(c) against the gold set (ADR-0001)
+    if gold:
+        from dna_analysis.grader import grade
+        from dna_analysis.grader.loaders import parse_gold
+
+        gold_entries = parse_gold(Path(gold).read_text())
+        result = grade(report_object, report_md, gold_entries, allowlist.as_set())
+        (out / "grade_result.json").write_text(
+            result.model_dump_json(indent=2) + "\n", encoding="utf-8"
+        )
+        print("\nGrade (per gold entry):")
+        for e in result.entries:
+            a = "PASS" if e.surfaced else "FAIL"
+            b = "PASS" if e.cited_guideline else "FAIL"
+            print(f"  {e.rsid:<11} {e.drug:<14} (a) {a}  (b) {b}")
+        c = (
+            "PASS"
+            if result.hallucination.passed
+            else f"FAIL {result.hallucination.out_of_vocabulary}"
+        )
+        print(
+            f"aggregate: (a) {result.surfaced_count}/{result.total}  "
+            f"(b) {result.cited_count}/{result.total}  (c) {c}"
+        )
+
+    print("\n" + _D_CHECKLIST)
+    print(f"\n-> {out}/  (report.md, report_object.json, findings.json"
+          + (", grade_result.json)" if gold else ")"))
     return 0
 
 
@@ -181,6 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument(
         "--max-variants", type=int, default=None, help="Cap focal variants (dev cost)."
     )
+    run.add_argument("--gold", default=None, help="gold.yaml for grading (a)(b)(c).")
 
     args = parser.parse_args(argv)
     if args.command == "grade-stub":
@@ -189,7 +242,8 @@ def main(argv: list[str] | None = None) -> int:
         return _etl(args.out, args.from_dir)
     if args.command == "run":
         return _run(
-            args.genome, args.etl_dir, args.out, args.no_agent, args.max_variants
+            args.genome, args.etl_dir, args.out, args.no_agent,
+            args.max_variants, args.gold,
         )
 
     parser.print_help()
