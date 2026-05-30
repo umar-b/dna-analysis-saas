@@ -91,6 +91,7 @@ def _run(
     no_agent: bool = False,
     max_variants: int | None = None,
     gold: str | None = None,
+    whoop: str | None = None,
 ) -> int:
     """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), then run
     the per-variant agent loop (ADR-0002/0008) and write findings.json. Writes
@@ -157,7 +158,14 @@ def _run(
     from dna_analysis.agent.synthesis import call as synth_call
     from dna_analysis.report import render
 
-    report_object = synth_call(findings, None, None, allowlist, client, model)
+    whoop_summary = None
+    if whoop:
+        from dna_analysis.ingest.whoop import parse as parse_whoop
+
+        whoop_summary = parse_whoop(whoop)
+        print(f"whoop: {whoop_summary.n_cycles} cycles in 90d window to {whoop_summary.anchor_date}")
+
+    report_object = synth_call(findings, whoop_summary, None, allowlist, client, model)
     (out / "report_object.json").write_text(
         report_object.model_dump_json(indent=2) + "\n", encoding="utf-8"
     )
@@ -234,6 +242,9 @@ def main(argv: list[str] | None = None) -> int:
         "--max-variants", type=int, default=None, help="Cap focal variants (dev cost)."
     )
     run.add_argument("--gold", default=None, help="gold.yaml for grading (a)(b)(c).")
+    run.add_argument(
+        "--whoop", default=None, help="Whoop CSV (or export dir) for lifestyle obs."
+    )
 
     args = parser.parse_args(argv)
     if args.command == "grade-stub":
@@ -243,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         return _run(
             args.genome, args.etl_dir, args.out, args.no_agent,
-            args.max_variants, args.gold,
+            args.max_variants, args.gold, args.whoop,
         )
 
     parser.print_help()

@@ -173,6 +173,25 @@ class NameAllowlist(BaseModel):
         return set(self.drugs) | set(self.genes) | set(self.conditions)
 
 
+class WhoopSummary(BaseModel):
+    """90-day Whoop summary feeding the synthesis pass (ADR-0012).
+
+    Anchored on the most-recent date in the file, NOT today (ADR-0012). Averages
+    are None when no in-window cycles carry that metric.
+    """
+
+    anchor_date: str = ""  # most-recent cycle date (ISO)
+    window_start: str = ""  # anchor - 90 days (ISO)
+    window_days: int = 90
+    n_cycles: int = 0
+    avg_hrv_ms: float | None = None
+    avg_recovery_score: float | None = None
+    avg_day_strain: float | None = None
+    avg_resting_hr: float | None = None
+    avg_sleep_duration_min: float | None = None
+    avg_sleep_performance: float | None = None
+
+
 class GoldValidation(BaseModel):
     """Mechanical pre-trust check on the gold set (issue #4, ADR-0001)."""
 

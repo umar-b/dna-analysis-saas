@@ -34,8 +34,11 @@ def _system_prompt(allowlist: NameAllowlist) -> str:
         "from the finding's guideline_id.\n"
         "- Use ONLY drug/gene/condition names from the allowlist below; never introduce "
         "a new proper noun.\n"
-        "- If no lifestyle or lab data is provided, return empty lifestyle_observations "
-        "and lab_observations and note the gap in caveats.\n\n"
+        "- If a Whoop 90-day summary is provided, write lifestyle_observations that "
+        "reference its metrics (HRV, recovery score, day strain, resting heart rate, "
+        "sleep duration/performance). If none is provided, return empty "
+        "lifestyle_observations and note the gap in caveats.\n"
+        "- If no lab data is provided, return empty lab_observations and note the gap.\n\n"
         f"NAME ALLOWLIST\ndrugs: {', '.join(allowlist.drugs)}\n"
         f"genes: {', '.join(allowlist.genes)}\nconditions: {', '.join(allowlist.conditions)}"
     )
@@ -54,10 +57,18 @@ def call(
     actionable = [f for f in findings if f.clinically_actionable]
     unremarkable = [f for f in findings if not f.clinically_actionable]
 
+    whoop_repr = "none provided"
+    if whoop_summary is not None:
+        whoop_repr = json.dumps(
+            whoop_summary.model_dump()
+            if hasattr(whoop_summary, "model_dump")
+            else whoop_summary
+        )
+
     user = (
         "Actionable findings:\n"
         + json.dumps([f.model_dump() for f in actionable], indent=1)
-        + f"\n\nWhoop 90-day summary: {whoop_summary or 'none provided'}"
+        + f"\n\nWhoop 90-day summary: {whoop_repr}"
         + f"\nLab records: {lab_records or 'none provided'}\n\n"
         "Synthesize the report object."
     )
