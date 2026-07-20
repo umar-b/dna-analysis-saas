@@ -37,3 +37,6 @@ pnpm-debug.log*
 
 # Scratch (issue tracker drafts that aren't ready)
 .scratch/_drafts/
+
+# Eval gold set — keep local for now
+/gold.yaml

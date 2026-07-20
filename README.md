@@ -54,6 +54,26 @@ Non-obvious calls are written up as ADRs in [`docs/adr/`](docs/adr/) — per-var
 
 V1 prototype — it runs end-to-end and produces a graded report. No web app, API, auth, or deployment yet (that's V2). Currently on ice.
 
+## Known limitations & what's next
+
+**Limitations (by design, for V1)**
+
+- **Single-user, local, single-shot** — no web app, API, auth, or persistence; you run it on your own machine against your own files.
+- **Narrow PGx scope** — a handful of high-impact gene–drug pairs, not the full CPIC catalogue.
+- **No polygenic risk scores** — PRS is deliberately punted (ADR-0006): ancestry-sensitive and hard to grade against a rubric.
+- **Synthesis faithfulness is hand-graded** — the "is the prose faithful to the findings" check is a manual read; only *surfaced / cited / no-hallucination* are scored programmatically.
+- **Mixed synthetic subject** — validates the stack, not a real person; genome, wearable, and labs come from different sources.
+- **Lab extraction trusts vision** — PDF → values via Claude vision with a verbatim-match guard, but no second OCR cross-check.
+
+**Next**
+
+- V2 web layer — the module boundaries already map to ingest / ETL / agent / grader / report domains.
+- Broaden the gold set and PGx coverage; add PRS once it's gradable (ancestry-aware calibration).
+- Automate the faithfulness grade — structured-field cross-checks instead of a human read.
+- Confidence calibration — surface how sure the agent is, not just what it found.
+- Persistence + longitudinal tracking — re-run over time and diff reports.
+- Wider wearable ingest beyond Whoop (Oura, Apple Health, CGM).
+
 ## Run
 
 ```bash
