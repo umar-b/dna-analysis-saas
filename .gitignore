@@ -40,3 +40,6 @@ pnpm-debug.log*
 
 # Eval gold set — keep local for now
 /gold.yaml
+
+# Decision records / internal docs — keep local
+/docs/

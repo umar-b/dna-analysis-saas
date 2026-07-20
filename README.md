@@ -46,9 +46,9 @@ Python 3.11+ · Anthropic SDK (`claude-opus-4-7`, 1M context) · `pandas` for ge
 
 Reference data: PharmGKB/CPIC guidelines, ClinVar summaries, PGS Catalog weights.
 
-## Design decisions
+## Design notes
 
-Non-obvious calls are written up as ADRs in [`docs/adr/`](docs/adr/) — per-variant vs. single-shot, hybrid grader (no LLM-as-judge), lab PDFs via vision, PRS punted to V2, and more.
+A few deliberate calls: **per-variant** agent calls rather than one giant prompt, so each variant is interpreted with its same-gene neighbours in context (diplotypes matter); a **hybrid grader with no LLM-as-judge**; lab PDFs read via **vision with a verbatim-match guard**; and PRS deferred until it's actually gradable.
 
 ## Status
 
@@ -60,7 +60,7 @@ V1 prototype — it runs end-to-end and produces a graded report. No web app, AP
 
 - **Single-user, local, single-shot** — no web app, API, auth, or persistence; you run it on your own machine against your own files.
 - **Narrow PGx scope** — a handful of high-impact gene–drug pairs, not the full CPIC catalogue.
-- **No polygenic risk scores** — PRS is deliberately punted (ADR-0006): ancestry-sensitive and hard to grade against a rubric.
+- **No polygenic risk scores** — PRS is deliberately deferred: ancestry-sensitive and hard to grade against a rubric.
 - **Synthesis faithfulness is hand-graded** — the "is the prose faithful to the findings" check is a manual read; only *surfaced / cited / no-hallucination* are scored programmatically.
 - **Mixed synthetic subject** — validates the stack, not a real person; genome, wearable, and labs come from different sources.
 - **Lab extraction trusts vision** — PDF → values via Claude vision with a verbatim-match guard, but no second OCR cross-check.
