@@ -25,3 +25,16 @@ def test_help_lists_grade_stub(capsys):
         main(["--help"])
     assert exc.value.code == 0
     assert "grade-stub" in capsys.readouterr().out
+
+
+def test_run_rejects_whoop_and_fitbit_together(capsys):
+    rc = main([
+        "run",
+        "--genome", "genome.txt",
+        "--etl-dir", "etl",
+        "--out", "out",
+        "--whoop", "whoop.csv",
+        "--fitbit", "fitbit",
+    ])
+    assert rc == 2
+    assert "only one of --whoop or --fitbit" in capsys.readouterr().out

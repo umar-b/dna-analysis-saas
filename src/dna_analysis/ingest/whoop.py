@@ -1,4 +1,4 @@
-"""Whoop CSV ingest (ADR-0012). Reads physiological_cycles.csv -> WhoopSummary.
+"""Whoop CSV ingest (ADR-0012). Reads physiological_cycles.csv into a WearableSummary with device="whoop".
 
 Drops rows with no recovery score (strap not worn), normalises dates to ISO,
 and computes a 90-day summary anchored on the most-recent date IN THE FILE
@@ -12,7 +12,7 @@ import io
 import os
 from datetime import date, timedelta
 
-from dna_analysis.models import WhoopSummary
+from dna_analysis.models import WearableSummary
 
 WINDOW_DAYS = 90
 _CYCLES_FILE = "physiological_cycles.csv"
@@ -33,7 +33,7 @@ def _iso(value: str) -> str:
     return value.strip().split(" ")[0].split("T")[0]
 
 
-def parse(path: str) -> WhoopSummary:
+def parse(path: str) -> WearableSummary:
     """Parse a Whoop export. ``path`` may be the CSV or the export directory."""
     if os.path.isdir(path):
         path = os.path.join(path, _CYCLES_FILE)
@@ -49,7 +49,7 @@ def _to_float(value: str):
         return None
 
 
-def parse_text(text: str) -> WhoopSummary:
+def parse_text(text: str) -> WearableSummary:
     reader = csv.DictReader(io.StringIO(text))
     rows = [
         row
@@ -58,13 +58,13 @@ def parse_text(text: str) -> WhoopSummary:
     ]
     dated = [(date.fromisoformat(_iso(r["Cycle start time"])), r) for r in rows]
     if not dated:
-        return WhoopSummary()
+        return WearableSummary()
 
     anchor = max(d for d, _ in dated)
     window_start = anchor - timedelta(days=WINDOW_DAYS)
     window = [r for d, r in dated if d > window_start]
 
-    summary = WhoopSummary(
+    summary = WearableSummary(
         anchor_date=anchor.isoformat(),
         window_start=window_start.isoformat(),
         window_days=WINDOW_DAYS,
