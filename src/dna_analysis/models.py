@@ -173,14 +173,17 @@ class NameAllowlist(BaseModel):
         return set(self.drugs) | set(self.genes) | set(self.conditions)
 
 
-class WhoopSummary(BaseModel):
-    """90-day Whoop summary feeding the synthesis pass (ADR-0012).
+class WearableSummary(BaseModel):
+    """90-day wearable summary feeding the synthesis pass (ADR-0012).
 
-    Anchored on the most-recent date in the file, NOT today (ADR-0012). Averages
-    are None when no in-window cycles carry that metric.
+    ``device`` says which export filled the averages. Anchored on the
+    most-recent worn date in the file, NOT today (ADR-0012). Averages are
+    None when no in-window day carries that metric. Fitbit Air leaves
+    ``avg_day_strain`` None; it has no strain score.
     """
 
-    anchor_date: str = ""  # most-recent cycle date (ISO)
+    device: Literal["whoop", "fitbit_air"] = "whoop"
+    anchor_date: str = ""  # most-recent worn date (ISO)
     window_start: str = ""  # anchor - 90 days (ISO)
     window_days: int = 90
     n_cycles: int = 0
@@ -190,6 +193,10 @@ class WhoopSummary(BaseModel):
     avg_resting_hr: float | None = None
     avg_sleep_duration_min: float | None = None
     avg_sleep_performance: float | None = None
+
+
+# ADR-0012 name. Existing imports keep working.
+WhoopSummary = WearableSummary
 
 
 class GoldValidation(BaseModel):
