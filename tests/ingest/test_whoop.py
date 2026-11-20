@@ -49,3 +49,11 @@ def test_empty_input_returns_zeroed_summary():
     s = parse_text(_HEADER + "\n")
     assert s.n_cycles == 0
     assert s.avg_recovery_score is None
+
+
+def test_whoop_summary_labels_device():
+    text = _csv([
+        "2026-05-29 01:33:32,80,70,50,10.0,480,80",
+    ])
+    s = parse_text(text)
+    assert s.device == "whoop"

@@ -34,10 +34,15 @@ def _system_prompt(allowlist: NameAllowlist) -> str:
         "from the finding's guideline_id.\n"
         "- Use ONLY drug/gene/condition names from the allowlist below; never introduce "
         "a new proper noun.\n"
-        "- If a Whoop 90-day summary is provided, write lifestyle_observations that "
-        "reference its metrics (HRV, recovery score, day strain, resting heart rate, "
-        "sleep duration/performance). If none is provided, return empty "
-        "lifestyle_observations and note the gap in caveats.\n"
+        "- If a 90-day wearable summary is provided, write lifestyle_observations "
+        "from the metrics that are present. Skip any metric whose value is null. "
+        "The summary's device field is whoop or fitbit_air: name that device in "
+        "the observation. For whoop, avg_recovery_score is recovery and "
+        "avg_day_strain is day strain. For fitbit_air, avg_recovery_score is the "
+        "daily readiness score and avg_day_strain is null because Fitbit Air has "
+        "no strain score. Metrics you may use: HRV, recovery or readiness, "
+        "resting heart rate, sleep duration, sleep performance. If no summary is "
+        "provided, return empty lifestyle_observations and note the gap in caveats.\n"
         "- If lab records are provided, write lab_observations referencing them and "
         "quote every lab value EXACTLY as given — no rounding or paraphrasing "
         "(ADR-0007). If none, return empty lab_observations and note the gap.\n\n"
@@ -48,7 +53,7 @@ def _system_prompt(allowlist: NameAllowlist) -> str:
 
 def call(
     findings: list[Finding],
-    whoop_summary,
+    wearable_summary,
     lab_records,
     allowlist: NameAllowlist,
     client,
@@ -59,12 +64,12 @@ def call(
     actionable = [f for f in findings if f.clinically_actionable]
     unremarkable = [f for f in findings if not f.clinically_actionable]
 
-    whoop_repr = "none provided"
-    if whoop_summary is not None:
-        whoop_repr = json.dumps(
-            whoop_summary.model_dump()
-            if hasattr(whoop_summary, "model_dump")
-            else whoop_summary
+    wearable_repr = "none provided"
+    if wearable_summary is not None:
+        wearable_repr = json.dumps(
+            wearable_summary.model_dump()
+            if hasattr(wearable_summary, "model_dump")
+            else wearable_summary
         )
 
     if lab_records:
@@ -77,7 +82,7 @@ def call(
     user = (
         "Actionable findings:\n"
         + json.dumps([f.model_dump() for f in actionable], indent=1)
-        + f"\n\nWhoop 90-day summary: {whoop_repr}"
+        + f"\n\nWearable 90-day summary: {wearable_repr}"
         + f"\nLab records: {labs_repr}\n\n"
         "Synthesize the report object."
     )

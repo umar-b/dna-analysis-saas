@@ -93,11 +93,16 @@ def _run(
     max_variants: int | None = None,
     gold: str | None = None,
     whoop: str | None = None,
+    fitbit: str | None = None,
     labs: list[str] | None = None,
 ) -> int:
     """Ingest a genome, filter to clinically-interesting RSIDs (ADR-0004), then run
     the per-variant agent loop (ADR-0002/0008) and write findings.json. Writes
     filtered_genotype.parquet + filter_diagnostics.json regardless."""
+    if whoop and fitbit:
+        print("error: pass only one of --whoop or --fitbit")
+        return 2
+
     import json
     from pathlib import Path
 
@@ -160,12 +165,23 @@ def _run(
     from dna_analysis.agent.synthesis import call as synth_call
     from dna_analysis.report import render, render_pdf
 
-    whoop_summary = None
+    wearable_summary = None
     if whoop:
         from dna_analysis.ingest.whoop import parse as parse_whoop
 
-        whoop_summary = parse_whoop(whoop)
-        print(f"whoop: {whoop_summary.n_cycles} cycles in 90d window to {whoop_summary.anchor_date}")
+        wearable_summary = parse_whoop(whoop)
+        print(
+            f"whoop: {wearable_summary.n_cycles} cycles in 90d window "
+            f"to {wearable_summary.anchor_date}"
+        )
+    elif fitbit:
+        from dna_analysis.ingest.fitbit import parse as parse_fitbit
+
+        wearable_summary = parse_fitbit(fitbit)
+        print(
+            f"fitbit_air: {wearable_summary.n_cycles} days in 90d window "
+            f"to {wearable_summary.anchor_date}"
+        )
 
     # Lab vision extraction (ADR-0007) — persist BEFORE synthesis so the manual
     # (d) read can spot-check vision against the source PDFs.
@@ -182,7 +198,7 @@ def _run(
         print(f"labs: {len(lab_records)} records -> {out / 'labs_extracted.json'}")
 
     report_object = synth_call(
-        findings, whoop_summary, lab_records, allowlist, client, model
+        findings, wearable_summary, lab_records, allowlist, client, model
     )
     (out / "report_object.json").write_text(
         report_object.model_dump_json(indent=2) + "\n", encoding="utf-8"
@@ -262,7 +278,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     run.add_argument("--gold", default=None, help="gold.yaml for grading (a)(b)(c).")
     run.add_argument(
-        "--whoop", default=None, help="Whoop CSV (or export dir) for lifestyle obs."
+        "--whoop",
+        default=None,
+        help="Whoop CSV (or export dir). Mutually exclusive with --fitbit.",
+    )
+    run.add_argument(
+        "--fitbit",
+        default=None,
+        help="Extracted Google Health dir for Fitbit Air. Mutually exclusive with --whoop.",
     )
     run.add_argument(
         "--labs", nargs="+", default=None, help="Lab PDF path(s) for lab observations."
@@ -276,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         return _run(
             args.genome, args.etl_dir, args.out, args.no_agent,
-            args.max_variants, args.gold, args.whoop, args.labs,
+            args.max_variants, args.gold, args.whoop, args.fitbit, args.labs,
         )
 
     parser.print_help()

@@ -28,6 +28,7 @@ The point isn't the engineering — it's the eval. Build the eval first.
 | **report object** | The typed Pydantic intermediate the synthesis call returns. Shape: `{actionable_findings: [...], lifestyle_observations: [...], lab_observations: [...], unremarkable_screen: [...], caveats: [...]}`. A Jinja template renders the object to `report.md`. Lets the grader read `guideline_id`/`citation_id` from JSON fields directly instead of regex-searching rendered prose. See ADR-0009. |
 | **PGP** | Personal Genome Project. The Harvard-led consent-driven open data project that publishes participants' genomes for research and development use. The V1 input genome is sourced from PGP's public genetic data page. |
 | **Whoop** | Wearable fitness tracker (the author's tracker — replaces Apple Health from the original ideation per ADR-0012). Central metric is HRV-based recovery; also surfaces strain, sleep performance, RHR. Export is CSV via the Whoop web portal. |
+| **Fitbit Air** | Screenless Google Health tracker. Ingest is an extracted Google Health Takeout directory, not a live API. Maps onto the same 90-day summary as Whoop. Daily readiness fills the recovery slot. Day strain stays empty. |
 | **mixed synthetic individual** | The V1 test subject: genome from a PGP volunteer, Whoop data and lab PDFs from the project author. The three sources are not the same person; the report's lifestyle/lab synthesis is therefore *stack-validation exercise only*, not personal medical advice. See ADR-0011. |
 
 ## Scope
@@ -49,7 +50,7 @@ The point isn't the engineering — it's the eval. Build the eval first.
 ## The agent loop
 
 1. Parse 23andMe → filter to RSIDs in PharmGKB ∪ ClinVar (≈600k → a few hundred). RSID-only intersection per ADR-0004.
-2. Parse Whoop CSV → 90-day summary: HRV, recovery score, strain, RHR, sleep duration + sleep performance.
+2. Parse exactly one wearable export, Whoop CSV or Fitbit Air directory, into a 90-day summary: HRV, recovery or readiness, strain when the device has it, RHR, sleep duration, sleep performance.
 3. Read lab PDFs via Claude vision → `labs_extracted.json` per ADR-0007.
 4. **Per-variant loop (ADR-0002).** For each filtered RSID, harness calls Claude with `{focal_pair, same_gene_context}` + tools (ADR-0008). Claude returns a `Finding` (ADR-0003).
 5. **Synthesis call (ADR-0009).** One Claude call sees the aggregated findings dict + `labs_extracted.json` + 90-day Whoop summary; returns a typed `ReportObject`.
@@ -93,6 +94,7 @@ The order is constrained by the eval-first ethos and the module boundaries that 
 
 - **Genome** is from PGP — publicly published with informed consent. Safe to keep locally; gitignored as standard hygiene. Filename should drop the participant's name in any artefact that leaves `data/` (logs, screenshots, commit messages).
 - **Whoop CSV** is the author's own data. Treat as PII. Gitignored.
+- A Fitbit Air / Google Health export is the user's own data. Treat as PII. Gitignored under `data/`.
 - **Lab PDFs** are the author's own data. Treat as PII. Gitignored.
 - Reference DB dumps (PharmGKB, ClinVar) are public and may be committed if size allows; otherwise gitignore and fetch via ETL.
 
